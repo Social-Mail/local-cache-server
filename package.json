@@ -1,6 +1,6 @@
 {
   "name": "local-cache-server",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Local Cache server creates memory/disk based cache to be used in Social Mail Web Server",
   "homepage": "https://github.com/Social-Mail/local-cache-server#readme",
   "bugs": {
@@ -17,6 +17,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "postversion": "git push --follow-tags",
-     "push": "git add -A && git commit -m \"dep vb\" && npm version patch"
+    "push": "git add -A && git commit -m \"dep vb\" && npm version patch"
   }
 }
