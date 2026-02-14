@@ -27,4 +27,20 @@ internal class BucketStore
 
         })!;
     }
+
+    internal void Clear(IMemoryCache cache, string bucket)
+    {
+        Task.Run(() =>
+        {
+            try
+            {
+                this.cache.Remove(bucket);
+                cache.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        });
+    }
 }

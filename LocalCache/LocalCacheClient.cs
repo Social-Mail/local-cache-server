@@ -48,6 +48,9 @@ internal class LocalCacheClient: JsonMessageClient<CacheMessage>
             case "delete":
                 bucket.Remove(msg.Key);
                 return "removed";
+            case "clear":
+                this.store.Clear(bucket, msg.Bucket);
+                return "done";
         }
         return "unknown";
     }
