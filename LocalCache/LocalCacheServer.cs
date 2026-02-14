@@ -5,16 +5,17 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace LocalCache;
 
 internal class LocalCacheServer : BackgroundService
 {
-    private readonly IMemoryCache cache;
+    private readonly BucketStore store;
 
-    public LocalCacheServer(IMemoryCache cache)
+    public LocalCacheServer(BucketStore store)
     {
-        this.cache = cache;
+        this.store = store;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -44,110 +45,11 @@ internal class LocalCacheServer : BackgroundService
             while (!stoppingToken.IsCancellationRequested)
             {
                 var client = await serverSocket.AcceptAsync();
-                _ = Task.Run(async () => {
-                    try
-                    {
-                        await this.ProcessClient(client, stoppingToken);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex);
-                    }
-                });
+                var cacheClient = new LocalCacheClient(this.store, client);
+                cacheClient.Run();
             }
         }
 
     }
 
-    async Task ProcessClient(Socket client, CancellationToken stoppingToken)
-    {
-        using var stream = new NetworkStream(client, ownsSocket: true);
-        using var reader = new StreamReader(stream, Encoding.UTF8);
-        using var writer = new StreamWriter(stream, Encoding.UTF8);
-        string? line;
-        object? value;
-        while (true)
-        {
-            while ((line = await reader.ReadLineAsync(stoppingToken)) != null)
-            {
-                var jsonObject = JsonSerializer.Deserialize<CacheMessage>(line);
-                if(jsonObject == null)
-                {
-                    continue;
-                }
-                switch(jsonObject.Command) {
-                    case "ping":
-                        await writer.WriteLineAsync(JsonSerializer.Serialize(new {
-                            id = jsonObject.ID,
-                            result = "pong"
-                        }));
-                        await writer.FlushAsync();
-                        break;
-                    case "get":
-                        if(string.IsNullOrWhiteSpace(jsonObject.Key))
-                        {
-                            await writer.WriteLineAsync(JsonSerializer.Serialize(new
-                            {
-                                id = jsonObject.ID,
-                                error = "key-empty"
-                            }));
-                            await writer.FlushAsync();
-                            continue;
-                        }
-                        value = this.cache.Get(jsonObject.Key);
-                        await writer.WriteLineAsync(JsonSerializer.Serialize(new
-                        {
-                            id = jsonObject.ID,
-                            value
-                        }));
-                        await writer.FlushAsync();
-                        break;
-                    case "set":
-                        if (string.IsNullOrWhiteSpace(jsonObject.Key))
-                        {
-                            await writer.WriteLineAsync(JsonSerializer.Serialize(new
-                            {
-                                id = jsonObject.ID,
-                                error = "key-empty"
-                            }));
-                            await writer.FlushAsync();
-                            continue;
-                        }
-                        value = jsonObject.Value;
-                        var maxAge = jsonObject.MaxAge ?? 4;
-                        var ttl = jsonObject.TTL ?? 15;
-                        this.cache.Set(jsonObject.Key, value, new MemoryCacheEntryOptions {
-                            AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(maxAge),
-                            SlidingExpiration = TimeSpan.FromSeconds(ttl),
-                        });
-                        await writer.WriteLineAsync(JsonSerializer.Serialize(new
-                        {
-                            id = jsonObject.ID,
-                            value
-                        }));
-                        await writer.FlushAsync();
-                        break;
-                    case "delete":
-                        if (string.IsNullOrWhiteSpace(jsonObject.Key))
-                        {
-                            await writer.WriteLineAsync(JsonSerializer.Serialize(new
-                            {
-                                id = jsonObject.ID,
-                                error = "key-empty"
-                            }));
-                            await writer.FlushAsync();
-                            continue;
-                        }
-                        this.cache.Remove(jsonObject.Key);
-                        await writer.WriteLineAsync(JsonSerializer.Serialize(new
-                        {
-                            id = jsonObject.ID,
-                            result="removed"
-                        }));
-                        await writer.FlushAsync();
-                        break;
-                }
-            }
-        }
-    }
 }

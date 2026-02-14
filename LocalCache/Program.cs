@@ -14,6 +14,8 @@ internal class Program
         {
             services.AddMemoryCache();
 
+            services.AddSingleton<BucketStore>();
+
             // Register your services here
             services.AddHostedService<LocalCacheServer>();
 

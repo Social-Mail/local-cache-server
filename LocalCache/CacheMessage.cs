@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace LocalCache;
 
-public class CacheMessage
+public class CacheMessage: IJsonMessage
 {
     [JsonPropertyName("id")]
     public string? ID { get;set; }
@@ -13,6 +13,9 @@ public class CacheMessage
 
     [JsonPropertyName("key")]
     public string? Key { get; set; }
+
+    [JsonPropertyName("bucket")]
+    public string? Bucket { get; set; }
 
     [JsonPropertyName("value")]
     public JsonValue? Value { get; set; }
