@@ -57,7 +57,7 @@ public abstract class JsonMessageClient<T> : IDisposable
     private async Task RunAsync(CancellationToken stoppingToken)
     {
         string? line;
-        while (!stoppingToken.IsCancellationRequested && (line = await reader.ReadLineAsync(stoppingToken)) != null)
+        while ((line = await reader.ReadLineAsync(stoppingToken)) != null)
         {
             var jsonObject = this.Deserialize(line);
             if (jsonObject == null)
