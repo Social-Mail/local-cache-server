@@ -5,6 +5,28 @@ using System.Text;
 
 namespace LocalCache;
 
+public class Bucket: IDisposable
+{
+    public readonly string BucketName;
+
+    public readonly IMemoryCache Cache;
+
+    public readonly IMemoryCache Locks;
+
+    public Bucket(string name)
+    {
+        this.BucketName = name;
+        this.Cache = new MemoryCache(new MemoryCacheOptions { });
+        this.Locks= new MemoryCache(new MemoryCacheOptions { });
+    }
+
+    public void Dispose()
+    {
+        this.Cache.Dispose();
+        this.Locks.Dispose();
+    }
+}
+
 internal class BucketStore
 {
     private readonly IMemoryCache cache;
@@ -14,28 +36,25 @@ internal class BucketStore
         this.cache = cache;
     }
 
-    public IMemoryCache Get(string key)
+    public Bucket Get(string key)
     {
         return this.cache.GetOrCreate(key, (k) => {
 
-            var mc = new MemoryCache(new MemoryCacheOptions {
-            });
-
             k.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(1);
 
-            return mc;
+            return new Bucket(key);
 
         })!;
     }
 
-    internal void Clear(IMemoryCache cache, string bucket)
+    internal void Clear(Bucket bucket)
     {
         Task.Run(() =>
         {
             try
             {
-                this.cache.Remove(bucket);
-                cache.Dispose();
+                this.cache.Remove(bucket.BucketName);
+                bucket.Dispose();
             }
             catch (Exception ex)
             {

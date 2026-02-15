@@ -31,7 +31,9 @@ internal class LocalCacheClient: JsonMessageClient<CacheMessage>
             throw new ArgumentException("Key is required");
         }
 
-        var bucket = this.store.Get(msg.Bucket);
+        var bucketStore = this.store.Get(msg.Bucket);
+        var bucket = bucketStore.Cache;
+        var locks = bucketStore.Locks;
         object? value;
         string n;
         string? locked;
@@ -45,7 +47,7 @@ internal class LocalCacheClient: JsonMessageClient<CacheMessage>
                     throw new ArgumentException("Invalid lock id");
                 }
                 n = msg.Value.AsValue().ToString();
-                locked = bucket.GetOrCreate<string>(msg.Key, (x) =>
+                locked = locks.GetOrCreate<string>(msg.Key, (x) =>
                 {
                     x.SlidingExpiration = TimeSpan.FromSeconds(15);
                     return n;
@@ -55,9 +57,26 @@ internal class LocalCacheClient: JsonMessageClient<CacheMessage>
                     return n.ToString();
                 }
                 return null;
+            case "release-lock":
+                if (msg.Value == null)
+                {
+                    throw new ArgumentException("Invalid lock id");
+                }
+                n = msg.Value.AsValue().ToString();
+                locked = locks.GetOrCreate<string>(msg.Key, (x) =>
+                {
+                    x.SlidingExpiration = TimeSpan.FromSeconds(15);
+                    return n;
+                });
+                if (locked == n)
+                {
+                    locks.Remove(msg.Key);
+                    return n.ToString();
+                }
+                return null;
             case "lock":
                 n = Interlocked.Increment(ref this.lockID).ToString();
-                locked = bucket.GetOrCreate<string>(msg.Key, (x) =>
+                locked = locks.GetOrCreate<string>(msg.Key, (x) =>
                 {
                     x.SlidingExpiration = TimeSpan.FromSeconds(15);
                     return n;
