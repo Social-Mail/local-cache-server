@@ -61,7 +61,7 @@ public abstract class JsonMessageClient<T> : IDisposable
         {
             while ((line = await reader.ReadLineAsync(stoppingToken)) != null)
             {
-                var jsonObject = JsonSerializer.Deserialize<T>(line);
+                var jsonObject = this.Deserialize(line);
                 if (jsonObject == null)
                 {
                     continue;
@@ -98,6 +98,18 @@ public abstract class JsonMessageClient<T> : IDisposable
 
     abstract protected Task<object> OnMessage(T msg);
 
+    private T? Deserialize(string line)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<T>(line);
+        } catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to parse:{line}");
+            Console.Write(ex.ToString());
+        }
+        return default(T);
+    }
 
     private async Task Send(object value)
     {
