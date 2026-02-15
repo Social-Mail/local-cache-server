@@ -48,7 +48,7 @@ public abstract class JsonMessageClient<T> : IDisposable
     private async Task RunAsync(CancellationToken stoppingToken)
     {
         string? line;
-        while (true)
+        while (!stoppingToken.IsCancellationRequested)
         {
             while ((line = await reader.ReadLineAsync(stoppingToken)) != null)
             {
@@ -84,6 +84,7 @@ public abstract class JsonMessageClient<T> : IDisposable
                 }
             }
         }
+        Console.WriteLine("Closing socket");
     }
 
     abstract protected Task<object> OnMessage(T msg);
