@@ -35,6 +35,13 @@ internal class LocalCacheClient: JsonMessageClient<CacheMessage>
         {
             case "get":
                 return bucket.Get(msg.Key);
+            case "lock":
+                var locked = bucket.Get(msg.Key);
+                if (locked != null)
+                {
+                    return "locked";
+                }
+                return "success";
             case "set":
                 value = msg.Value;
                 var maxAge = msg.MaxAge ?? 4;
