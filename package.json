@@ -1,6 +1,6 @@
 {
   "name": "local-cache-server",
-  "version": "1.0.12",
+  "version": "1.0.15",
   "description": "Local Cache server creates memory/disk based cache to be used in Social Mail Web Server",
   "homepage": "https://github.com/Social-Mail/local-cache-server#readme",
   "bugs": {
