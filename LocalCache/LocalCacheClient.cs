@@ -100,7 +100,7 @@ internal class LocalCacheClient: JsonMessageClient<CacheMessage>
                 bucket.Remove(msg.Key);
                 return "removed";
             case "clear":
-                this.store.Clear(bucket, msg.Bucket);
+                this.store.Clear(bucketStore);
                 return "done";
         }
         return "unknown";
