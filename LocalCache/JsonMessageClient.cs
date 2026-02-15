@@ -21,13 +21,11 @@ public abstract class JsonMessageClient<T> : IDisposable
     private readonly SemaphoreSlim _asyncLock = new SemaphoreSlim(1, 1);
     private readonly NetworkStream stream;
     private readonly StreamReader reader;
-    private readonly StreamWriter writer;
 
     public JsonMessageClient(Socket client)
     {
         this.stream = new NetworkStream(client, ownsSocket: true);
         this.reader = new StreamReader(stream, Encoding.UTF8);
-        this.writer = new StreamWriter(stream, Encoding.UTF8);
     }
 
     public void Run(CancellationToken stoppingToken = default)
@@ -106,8 +104,10 @@ public abstract class JsonMessageClient<T> : IDisposable
         await this._asyncLock.WaitAsync();
         try
         {
-            await writer.WriteLineAsync(JsonSerializer.Serialize(value));
-            await writer.FlushAsync();
+            var text = JsonSerializer.Serialize(value);
+            var buffer = System.Text.Encoding.UTF8.GetBytes(text);
+            await stream.WriteAsync(buffer);
+            await stream.FlushAsync();
         }
         finally
         {
@@ -120,7 +120,6 @@ public abstract class JsonMessageClient<T> : IDisposable
         try
         {
             this.reader.Dispose();
-            this.writer.Dispose();
         }
         finally
         {
