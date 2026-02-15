@@ -33,18 +33,40 @@ internal class LocalCacheClient: JsonMessageClient<CacheMessage>
 
         var bucket = this.store.Get(msg.Bucket);
         object? value;
+        string n;
+        string? locked;
         switch (msg.Command)
         {
             case "get":
                 return bucket.Get(msg.Key);
-            case "lock":
-                var n = Interlocked.Increment(ref this.lockID);
-                var locked = bucket.GetOrCreate<long>(msg.Key, (x) => n);
+            case "renew-lock":
+                if (msg.Value == null)
+                {
+                    throw new ArgumentException("Invalid lock id");
+                }
+                n = msg.Value.AsValue().ToString();
+                locked = bucket.GetOrCreate<string>(msg.Key, (x) =>
+                {
+                    x.SlidingExpiration = TimeSpan.FromSeconds(15);
+                    return n;
+                });
                 if (locked == n)
                 {
-                    return "success";
+                    return n.ToString();
                 }
-                return "locked";
+                return null;
+            case "lock":
+                n = Interlocked.Increment(ref this.lockID).ToString();
+                locked = bucket.GetOrCreate<string>(msg.Key, (x) =>
+                {
+                    x.SlidingExpiration = TimeSpan.FromSeconds(15);
+                    return n;
+                });
+                if (locked == n)
+                {
+                    return n.ToString();
+                }
+                return null;
             case "set":
                 value = msg.Value;
                 var maxAge = msg.MaxAge ?? 4;
