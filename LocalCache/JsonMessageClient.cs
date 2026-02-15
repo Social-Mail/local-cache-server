@@ -36,7 +36,18 @@ public abstract class JsonMessageClient<T> : IDisposable
             try
             {
                 using var t = this;
-                await this.RunAsync(stoppingToken);
+
+                // this nested try catch is important to
+                // log logic error in parsing as outer
+                // try might gobble up parsing errors when
+                // closing stream
+                try
+                {
+                    await this.RunAsync(stoppingToken);
+                } catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
             }
             catch (Exception ex)
             {
