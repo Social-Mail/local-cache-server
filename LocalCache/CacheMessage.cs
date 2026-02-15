@@ -18,7 +18,7 @@ public class CacheMessage: IJsonMessage
     public string? Bucket { get; set; }
 
     [JsonPropertyName("value")]
-    public JsonValue? Value { get; set; }
+    public JsonNode? Value { get; set; }
 
     [JsonPropertyName("maxAge")]
     public long? MaxAge { get; set; }
