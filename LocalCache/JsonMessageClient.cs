@@ -104,7 +104,7 @@ public abstract class JsonMessageClient<T> : IDisposable
         await this._asyncLock.WaitAsync();
         try
         {
-            var text = JsonSerializer.Serialize(value + "\n");
+            var text = JsonSerializer.Serialize(value) + "\n";
             var buffer = System.Text.Encoding.UTF8.GetBytes(text);
             await stream.WriteAsync(buffer);
             await stream.FlushAsync();
