@@ -57,40 +57,37 @@ public abstract class JsonMessageClient<T> : IDisposable
     private async Task RunAsync(CancellationToken stoppingToken)
     {
         string? line;
-        while (!stoppingToken.IsCancellationRequested)
+        while (!stoppingToken.IsCancellationRequested && (line = await reader.ReadLineAsync(stoppingToken)) != null)
         {
-            while ((line = await reader.ReadLineAsync(stoppingToken)) != null)
+            var jsonObject = this.Deserialize(line);
+            if (jsonObject == null)
             {
-                var jsonObject = this.Deserialize(line);
-                if (jsonObject == null)
+                continue;
+            }
+            if (jsonObject.Command == "ping")
+            {
+                await this.Send(new
                 {
-                    continue;
-                }
-                if (jsonObject.Command == "ping")
+                    id = jsonObject.ID,
+                    result = "pong"
+                });
+                continue;
+            }
+            try
+            {
+                var value = await this.OnMessage(jsonObject);
+                await this.Send(new {
+                    id = jsonObject.ID,
+                    value
+                });
+            } catch (Exception error)
+            {
+                await this.Send(new
                 {
-                    await this.Send(new
-                    {
-                        id = jsonObject.ID,
-                        result = "pong"
-                    });
-                    continue;
-                }
-                try
-                {
-                    var value = await this.OnMessage(jsonObject);
-                    await this.Send(new {
-                        id = jsonObject.ID,
-                        value
-                    });
-                } catch (Exception error)
-                {
-                    await this.Send(new
-                    {
-                        id = jsonObject.ID,
-                        error = error.Message,
-                        details = error.ToString()
-                    });
-                }
+                    id = jsonObject.ID,
+                    error = error.Message,
+                    details = error.ToString()
+                });
             }
         }
         Console.WriteLine("Closing socket");
