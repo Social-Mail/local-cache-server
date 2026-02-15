@@ -11,6 +11,8 @@ namespace LocalCache;
 
 internal class LocalCacheClient: JsonMessageClient<CacheMessage>
 {
+    public long lockID = 1;
+
     private readonly BucketStore store;
 
     public LocalCacheClient(BucketStore store, Socket client): base(client)
@@ -36,12 +38,13 @@ internal class LocalCacheClient: JsonMessageClient<CacheMessage>
             case "get":
                 return bucket.Get(msg.Key);
             case "lock":
-                var locked = bucket.Get(msg.Key);
-                if (locked != null)
+                var n = Interlocked.Increment(ref this.lockID);
+                var locked = bucket.GetOrCreate<long>(msg.Key, (x) => n);
+                if (locked == n)
                 {
-                    return "locked";
+                    return "success";
                 }
-                return "success";
+                return "locked";
             case "set":
                 value = msg.Value;
                 var maxAge = msg.MaxAge ?? 4;
