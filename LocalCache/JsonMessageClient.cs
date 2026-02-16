@@ -90,7 +90,6 @@ public abstract class JsonMessageClient<T> : IDisposable
                 });
             }
         }
-        Console.WriteLine("Closing socket");
     }
 
     abstract protected Task<object> OnMessage(T msg);
